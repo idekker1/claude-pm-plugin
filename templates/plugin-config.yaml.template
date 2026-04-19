@@ -1,0 +1,11 @@
+# Claude PM Plugin — project configuration
+# See: https://github.com/idekker1/claude-pm-plugin
+
+# ── Notion Integration ─────────────────────────────────────────────────────────
+# Set enabled: true and provide IDs to sync audit reports to Notion.
+# WARNING: Do not commit credentials — add plugin-config.yaml to .gitignore
+notion:
+  enabled: false
+  workspace_id: ""          # Notion workspace ID
+  bugs_database_id: ""      # Database for Critical/Major/Minor issues
+  tasks_database_id: ""     # Database for Architectural roadmap items

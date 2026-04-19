@@ -1,0 +1,102 @@
+# [Project Name] — AI Agent Reference
+
+> **Purpose:** Definitive reference for any AI agent working on this codebase.
+> Read this before making any changes. Describes the live system — architecture,
+> schema, API surface, conventions, and known limitations.
+>
+> For strategic direction and upcoming work, read `ROADMAP.md`.
+
+---
+
+## § 1 — Project Overview
+
+[One paragraph: what this project is, what it does, what the main components are.]
+
+**Current version: V0.1**
+
+---
+
+## § 2 — Architecture
+
+[Describe how the system is structured. For services-based projects, include a
+diagram or table of services, their roles, and how they communicate. For monolith
+projects, describe the main layers (controller, service, repository, etc.).]
+
+---
+
+## § 3 — Directory Layout
+
+[Key directories and what they contain. Example:]
+
+```
+src/
+├── api/          # HTTP layer — routes call service functions, no business logic
+├── services/     # Business logic — no HTTP concerns
+├── db/           # Database queries and migrations
+└── models/       # Data models and schemas
+tests/
+├── unit/         # Unit tests
+└── integration/  # Integration tests
+```
+
+---
+
+## § 4 — Database Schema
+
+[Tables, columns, relationships. Update this section whenever schema migrations run.]
+
+[Example format:]
+```sql
+-- tracks: core table
+CREATE TABLE tracks (
+    id UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    path TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+## § 5 — Configuration
+
+[Environment variables and config files the project uses. Example:]
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | required |
+| `PORT` | API server port | `8000` |
+
+---
+
+## § 6 — Integration Tools (if applicable)
+
+[MCP server tools, external integrations, webhooks, etc.]
+
+---
+
+## § 7 — API Endpoints (if applicable)
+
+[REST API routes. Update this section whenever endpoints are added or changed.]
+
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `GET` | `/health` | Health check | — | `{"status": "ok"}` |
+
+---
+
+## § 8 — Coding Conventions
+
+[Project-specific patterns that agents must follow. Examples:]
+
+- **SQL**: Parameterized queries only — no f-strings or string concatenation for values
+- **API layer**: Thin routes — routes call service/query functions, no business logic in routes
+- **Naming**: Database queries use `get_X()`, `create_X()`, `update_X()`, `delete_X()`
+- **Error handling**: All errors should propagate with context, never swallowed silently
+
+---
+
+## § 9 — Known Limitations & Extension Points
+
+[Things that are deliberately out of scope or known constraints. Helps agents avoid
+proposing changes that conflict with these constraints.]

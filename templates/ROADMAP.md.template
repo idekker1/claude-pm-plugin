@@ -1,0 +1,43 @@
+# [Project Name] — Roadmap
+
+**Last updated:** YYYY-MM-DD
+**Current version: V0.1**
+
+> This document is the strategic reference for all AI agents working on this codebase.
+> Read this alongside `.ai-agents/REFERENCE.md` before making any changes.
+
+---
+
+## § 1 — Vision & Scope
+
+[Describe what this project does and what success looks like. One paragraph.
+Include who the primary user is and what their core use case is.]
+
+---
+
+## § 2 — Technology Decisions (Final)
+
+These decisions are made. Don't revisit them without strong reason.
+
+| Concern | Choice | Rationale |
+|---------|--------|-----------|
+| [e.g. Database] | [e.g. PostgreSQL] | [why — what alternatives were considered and why this was chosen] |
+| [e.g. Framework] | [e.g. FastAPI] | [why] |
+
+**Not using:** [List explicitly excluded technologies and why, so agents don't suggest them]
+
+---
+
+## § 3 — V0.1 — Initial Release
+
+- [ ] [First feature or milestone — brief description]
+- [ ] [Second feature]
+
+---
+
+## § 10 — Open Questions
+
+[Design decisions not yet made. Each entry should name what needs to be decided
+and what the tradeoffs are. Remove entries as they are resolved.]
+
+- **[Question title]:** [What needs to be decided and why it's not yet decided]

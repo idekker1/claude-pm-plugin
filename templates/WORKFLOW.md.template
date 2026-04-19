@@ -1,0 +1,88 @@
+# Developer Workflow
+
+## Branch Naming
+
+| Work type | Prefix | Example |
+|-----------|--------|---------|
+| New feature | `feature/` | `feature/user-authentication` |
+| Bug fix | `fix/` | `fix/null-pointer-login` |
+| Documentation | `docs/` | `docs/update-api-reference` |
+| Refactor | `refactor/` | `refactor/extract-query-layer` |
+| CI / tooling | `chore/` | `chore/add-ruff-pre-commit` |
+
+Rules: lowercase only, hyphens as separators (no underscores, no spaces), under 50 characters total.
+
+## Commit Messages
+
+Format: `<type>: <description in imperative mood>`
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`
+
+Rules: under 72 chars, imperative mood ("add X" not "added X"), no period at end.
+Body if needed: blank line after subject, explain WHY not what.
+
+## Linting
+
+[Replace with your project's lint command]
+
+```bash
+# Example:
+make lint          # check
+make lint-fix      # auto-fix
+```
+
+## Testing
+
+[Replace with your project's test command]
+
+```bash
+# Example:
+make test          # run all tests
+make test-watch    # watch mode
+```
+
+## Day-to-Day Workflow
+
+```
+git checkout main && git pull
+git checkout -b feature/my-feature
+
+# ... develop ...
+
+/pre-commit                          # guardian consistency check
+git add -p && git commit -m "feat: ..."
+
+/review src/path/to/changed          # deep review before PR
+/pr                                  # lint → commit → push → open PR
+
+# merge on GitHub
+
+git checkout main && git pull
+/run-jobs "PR merged #N"             # sync roadmap + docs
+```
+
+## Claude Code Skills
+
+| Command | What it does |
+|---------|-------------|
+| `/setup` | Bootstrap plugin structure (run once on new projects) |
+| `/pm` | Project status: branches, job queue, roadmap |
+| `/pm-update-roadmap` | Sync roadmap after a PR merges |
+| `/pm-sync` | Sync issues to Notion (if configured) |
+| `/architect [feature]` | Design a feature before building it |
+| `/create-job [task]` | Queue a unit of work in jobs/pending/ |
+| `/run-jobs` | Execute next unblocked job |
+| `/review [path]` | Deep code review |
+| `/pre-commit` | Quick consistency check before committing |
+| `/pr` | Ship: lint → commit → push → open PR |
+| `/audit` | Full codebase audit, generate issue reports |
+
+## Full Job Workflow
+
+```
+/architect feature description    # design + roadmap entry
+/create-job 'task description'    # queue implementation job
+/run-jobs                         # pick up and execute job
+/pr                               # ship the branch
+/run-jobs "PR merged #N"          # sync docs after merge
+```
