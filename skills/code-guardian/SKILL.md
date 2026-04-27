@@ -32,6 +32,9 @@ don't try to fix it in a drive-by — write it up as an issue and move on.
 
 Read `.ai-agents/REFERENCE.md` before starting any pass — it defines the conventions
 for this project. Apply those conventions; don't invent new ones.
+Read `.ai-agents/PROJECT_CONTEXT.md` — use it as the authoritative project name and stack
+reference. If missing, note that `/setup` has not been run and proceed with context
+inferred from the codebase.
 
 ---
 

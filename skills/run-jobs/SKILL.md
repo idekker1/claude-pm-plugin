@@ -86,6 +86,12 @@ Do not proceed without a clear answer.
 
 Read the selected job file in full. Then run two passes.
 
+### Context preload
+
+Before either pass, read `.ai-agents/PROJECT_CONTEXT.md` — use it as the authoritative project
+name and stack reference when constructing the dispatch prompt in STEP 5. If missing, proceed
+with context from ROADMAP.md and REFERENCE.md only.
+
 ### Pass 1 — Against ROADMAP.md
 
 - Does the job's Task match the roadmap item it references?

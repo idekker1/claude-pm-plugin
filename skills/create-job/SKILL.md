@@ -29,6 +29,9 @@ This skill runs under the **Antigravity Protocol** (`.claude/skills/antigravity/
 
 Before evaluating the request:
 
+0. Read `.ai-agents/PROJECT_CONTEXT.md` — use it as the authoritative project name and stack
+   reference. If missing, note this and proceed with context from ROADMAP.md.
+
 1. Read `ROADMAP.md` in full
 2. List `jobs/pending/`, `jobs/active/`, `jobs/done/`, `jobs/failed/` — read frontmatter
    from each file (job_id, type, depends_on, priority, roadmap_ref)

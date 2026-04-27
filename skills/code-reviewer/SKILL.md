@@ -42,6 +42,9 @@ Before diving into line-by-line analysis, understand the big picture:
 Read the code top-to-bottom once to build a mental model before flagging anything.
 Read `.ai-agents/REFERENCE.md` if it exists — it describes the current architecture
 and conventions for this project.
+Read `.ai-agents/PROJECT_CONTEXT.md` if it exists — use it as the authoritative project name
+and stack reference. If missing, note that `/setup` has not been run and proceed with
+context inferred from the codebase.
 
 ### 2. Analysis Passes
 

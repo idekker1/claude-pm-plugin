@@ -67,6 +67,10 @@ Body if needed: blank line after subject, explain WHY not what.
 **How to advise**: Run `git status`, `git branch --show-current`, and `git log --oneline -10`
 first. Give specific, actionable guidance with copy-paste commands.
 
+**Project context**: Read `.ai-agents/PROJECT_CONTEXT.md` before any responsibility — use it as the
+authoritative project name and stack reference. If the file does not exist, prompt the user to run
+`/setup` first. Never hardcode a project name.
+
 ---
 
 ## Responsibility 2 — Roadmap and Docs Maintenance

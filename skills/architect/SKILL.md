@@ -47,6 +47,10 @@ A feature that serves no stated goal is scope creep — name it.
 
 Before engaging with any design request:
 
+0. Read `.ai-agents/PROJECT_CONTEXT.md` — use it as the authoritative project name and stack
+   reference throughout this session. If the file does not exist, stop and output:
+   > "PROJECT_CONTEXT.md not found. Run `/setup` first to initialise the plugin for this project."
+
 1. Read `ROADMAP.md` in full
    - Understand the current version and what's in progress
    - Note the tech decisions table (Section 2) — these are the hard constraints
