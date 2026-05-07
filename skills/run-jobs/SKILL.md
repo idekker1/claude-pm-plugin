@@ -56,25 +56,51 @@ Read all four folders and build a complete picture:
 
 ## STEP 2 — Select next job
 
-From the pending list:
+### Version parsing rule
 
-1. **Filter**: remove jobs where any `depends_on` job_id is NOT in the done set
-2. **From the unblocked set**: select by priority (high > normal > low)
-3. **Tie-break**: lower job_id wins (older jobs first)
+Extract the `roadmap_version` from each job's `roadmap_ref` frontmatter field by taking
+the first space-delimited token:
+- `"V1.1 — Some task"` → `V1.1`
+- `"V1.2 — Another task"` → `V1.2`
+- `""` (empty or missing) → version-agnostic — no version gate applies
 
-If no unblocked jobs exist:
-- List every blocked job with its specific blocker:
+Version comparison is lexicographic: `V1.1 < V1.2 < V1.3 < V2.0`.
+
+### Selection process
+
+1. **Dependency filter**: remove jobs where any `depends_on` job_id is NOT in the done set
+
+2. **Version gate**:
+   - Scan all four folders (`pending/`, `active/`, `done/`, `failed/`) and extract
+     `roadmap_version` from every job's `roadmap_ref`
+   - Find the **active version**: the lowest version that has at least one job NOT in `done/`
+     (i.e. still pending, active, or failed)
+   - From the unblocked candidates, keep only jobs where
+     `roadmap_version == active_version` OR `roadmap_version` is empty (version-agnostic)
+   - **Edge case — stalled version**: if the active version has jobs ONLY in `failed/`
+     (none pending or active), surface a pushback gate:
+     > "All remaining V1.1 jobs are in failed/. Proceed to V1.2, or resolve failed jobs first?"
+     Do not proceed without explicit confirmation.
+
+3. **Priority sort**: from the version-gated set, select by priority (high > normal > low)
+
+4. **Tie-break**: lower job_id wins (older jobs first)
+
+If no jobs remain after all filters:
+- List every blocked job with its specific blocker, including version-gate reasons:
   > "Job 005 is blocked — depends_on [003], which is in failed/"
+  > "Job 008 (V1.2) is version-gated — job 004 (V1.1) must complete first."
 - Stop. Do not proceed.
 
 ---
 
 ## STEP 3 — Order check (pushback gate)
 
-Re-run the dependency and roadmap-order validation from create-job Step 2.
+Re-run the dependency and version-gate validation from create-job Step 2.
 
-This catches jobs that were valid when created but are now out of order because
-project state has changed.
+This is a second gate, not a redundant one. It catches jobs that were valid when created
+but are now out of order because project state has changed — including cases where a lower
+version has new pending jobs added after this job was queued.
 
 If a concern is found, present it and ask for explicit confirmation before proceeding.
 

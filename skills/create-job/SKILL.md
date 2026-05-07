@@ -77,6 +77,16 @@ housekeeping task, flag it:
 > "This work doesn't appear in the roadmap. If it should be there, update the roadmap
 > first via `/architect`. If it's a one-off, say so and I'll mark it accordingly."
 
+**Version order advisory**: After confirming roadmap alignment, check whether lower-version
+work is still in flight:
+- Extract the new job's version from its intended `roadmap_ref` (first space-delimited token)
+- Check whether any jobs at a lower version are still in `pending/` or `active/`
+- If yes, warn (advisory only — do not block creation):
+  > "This job is V1.2, but job 004 (V1.1 — chunk-sweep) is still pending. The job will
+  > be created, but run-jobs will not pick it up until all V1.1 jobs complete."
+
+Creation proceeds regardless. The hard gate is enforced at run time by run-jobs.
+
 ### (c) SANITY CHECK
 
 Is the request well-defined enough to act on?
