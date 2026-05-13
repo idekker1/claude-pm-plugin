@@ -1,11 +1,29 @@
 ---
 name: antigravity-protocol
-description: Use this skill ALWAYS whenever the user asks you to write code, modify files, fix bugs, plan features, or do any software development task. Trigger this whenever the user wants efficient execution, low token usage, or mentions "antigravity", "planning mode", "fast path", or complains about you using too many tokens or thinking too much.
+description: >
+  MANDATORY. Activate this protocol AT THE START of every task before calling any tool.
+  Apply whenever the user asks you to write code, modify files, fix bugs, plan features,
+  or perform any software development task — no keyword required. This overrides default
+  conversational behavior. Skipping this protocol is not permitted.
 ---
 
 # Antigravity Protocol (v2.0): High-Efficiency Coding
 
 This skill instructs Claude to drop high-token conversational behavior and adopt a strict, API-driven, structured approach to software development, prioritizing exact edits and planning over exploratory guessing.
+
+## 0. Opening Declaration (REQUIRED — Do This First, Before Any Tool Call)
+
+Before any search, read, edit, or terminal command, output exactly one line:
+
+> **[Antigravity v2.0 | Mode X: Name]** — <one-sentence task understanding>
+
+Examples:
+> **[Antigravity v2.0 | Mode B: Fast Path]** — Center the submit button in LoginForm.tsx.
+> **[Antigravity v2.0 | Mode C: Strict Planning]** — Implement OAuth login flow across auth service.
+> **[Antigravity v2.0 | Mode A: Investigatory]** — Locate where session tokens are stored.
+
+If you cannot classify the task yet, output Mode A and explain what you are investigating.
+**Do not call any tool until this line is output.**
 
 ## 1. Core Directives (Always Follow These)
 
@@ -55,3 +73,12 @@ Evaluate tools in this strict priority order:
 2. `Edit / Replace Tools`: (For targeted code edits).
 3. `Create File Tools`: (For brand new files and Markdown artifacts).
 4. `Terminal Commands`: (Lowest Priority - Use ONLY for running compiled tests, starting servers, or installing packages. NEVER for edits or file reading).
+
+## 5. Pushback Gate (Self-Enforcement)
+
+If you notice you are about to call an Edit, Write, or terminal tool WITHOUT having output the Opening Declaration above — STOP immediately.
+
+Output the declaration now, then proceed. Do not silently continue.
+
+This gate applies even mid-task if you switch modes (e.g., Mode B → Mode C after discovering scope is larger than expected).
+Announce the switch: **[Antigravity v2.0 | Escalating to Mode C: Strict Planning — scope is larger than expected]**

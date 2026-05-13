@@ -16,7 +16,7 @@ a well-formed job file and writes it to `jobs/pending/`. It does **not** execute
 
 ## Execution Protocol
 
-This skill runs under the **Antigravity Protocol** (`.claude/skills/antigravity/SKILL.md`).
+This skill runs under the **Antigravity Protocol v2.0** (`.claude/skills/antigravity2.0/SKILL.md`).
 
 - Read files silently using built-in tools
 - This is a **Mode B (Fast Path)** task: read context → validate → write one file → confirm

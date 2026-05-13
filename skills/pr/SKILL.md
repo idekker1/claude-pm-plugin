@@ -168,3 +168,14 @@ Output a final status block:
 **Next step:** Monitor CI — if it passes, the PR is ready for merge.
 ---
 ```
+
+---
+
+## Execution Protocol
+
+This skill runs under the **Antigravity Protocol v2.0** (`.claude/skills/antigravity2.0/SKILL.md`).
+
+- Output the Opening Declaration (`Mode B: Fast Path`) before any tool call
+- All git checks and lint runs happen via tool calls — no narration
+- No preambles between steps — output the result, then move to the next step
+- The commit message confirmation (Step 4) is the only required halt; do not add others

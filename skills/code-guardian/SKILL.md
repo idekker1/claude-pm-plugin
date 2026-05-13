@@ -259,7 +259,7 @@ Next step options:
 
 ## Execution Protocol
 
-This skill runs under the **Antigravity Protocol** (`.claude/skills/antigravity/SKILL.md`).
+This skill runs under the **Antigravity Protocol v2.0** (`.claude/skills/antigravity2.0/SKILL.md`).
 
 - Never use generic terminal commands (`cat`, `grep`, `ls`) for file reads — use built-in tools
 - Chunk-based editing only — targeted search-and-replace edits only
