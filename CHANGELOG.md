@@ -1,11 +1,5 @@
 # Changelog
 
-## v2.0.1 — 2026-10-09
-
-Pin this rather than `v2.0.0`. Same release, plus the adversarial test generation carried
-forward from v1's `ab32e36` — which `v2.0.0` was tagged just before. The `v2.0.0` notes below
-describe it, so `v2.0.1` is the tag whose contents match them.
-
 ## v2.0.0 — 2026-10-09
 
 **Breaking.** Reoriented from a job tracker into a multi-agent orchestrator. 11 skills → 6,
