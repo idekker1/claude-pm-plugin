@@ -28,6 +28,17 @@ created: YYYY-MM-DD
 -
 -
 
+## Test spec
+
+<!-- Required for type: implementation, schema-change, refactor. Omit for docs-update, review.
+     Write in behavioral terms (observable inputs/outputs/invariants) — not implementation terms.
+     This spec is used to auto-generate an adversarial test job after implementation completes. -->
+
+- **Invariants:** [e.g., X is always Y after calling Z, state never regresses]
+- **Inputs to test:** [e.g., empty list, null, value > MAX, concurrent calls]
+- **Errors to catch:** [e.g., missing field returns 400 not 500, unknown ID raises not silently ignores]
+- **Must NOT happen:** [e.g., side-effects under read-only flag, data loss on retry]
+
 ## Notes
 
 <!-- The decision records that apply (by id), the invariants in play, files to read first,
