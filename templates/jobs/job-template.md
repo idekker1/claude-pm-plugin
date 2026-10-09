@@ -30,14 +30,19 @@ created: YYYY-MM-DD
 
 ## Test spec
 
-<!-- Required for type: implementation, schema-change, refactor. Omit for docs-update, review.
-     Write in behavioral terms (observable inputs/outputs/invariants) — not implementation terms.
-     This spec is used to auto-generate an adversarial test job after implementation completes. -->
+<!-- Required for type: implementation, refactor, fix. Omit for test, docs, review.
 
-- **Invariants:** [e.g., X is always Y after calling Z, state never regresses]
-- **Inputs to test:** [e.g., empty list, null, value > MAX, concurrent calls]
-- **Errors to catch:** [e.g., missing field returns 400 not 500, unknown ID raises not silently ignores]
-- **Must NOT happen:** [e.g., side-effects under read-only flag, data loss on retry]
+     Write in BEHAVIOURAL terms — observable inputs, outputs and invariants. Never in
+     implementation terms: no internal function names, no structure. The spec is written
+     before the implementation exists and is used to generate an adversarial test job after
+     it merges, by an agent that must not be able to infer the implementation from it.
+
+     This is what stops a green suite meaning "the code agrees with itself". -->
+
+- **Invariants:** <what must always hold — e.g. X is always Y after Z; state never regresses>
+- **Inputs to test:** <e.g. empty, absent, boundary, over-limit, concurrent, malformed>
+- **Errors to catch:** <e.g. missing field is rejected, not defaulted; unknown id raises, not ignored>
+- **Must NOT happen:** <e.g. no writes under a read-only flag; no data loss on retry or interrupt>
 
 ## Notes
 

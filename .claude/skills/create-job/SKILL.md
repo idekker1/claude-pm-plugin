@@ -1,236 +1,150 @@
 ---
 name: create-job
 description: >
-  Dispatch a new job into the jobs/pending/ queue. Validates dependency order,
-  roadmap alignment, and acceptance-criteria specificity before writing the job file.
-  Invoke when you want to queue up a unit of work. Does NOT execute work — only
-  produces a well-formed job .md file.
+  Queue a unit of work as a job file in jobs/pending/. Validates that the work maps to the
+  roadmap, that its acceptance criteria are independently testable, and that its `touches` list
+  is complete enough for the orchestrator to schedule it safely. Invoke when the user wants to
+  queue work, add a task, or turn a roadmap item into something an agent can run. Produces one
+  job file — does NOT execute work.
 ---
 
-# create-job Skill
+# create-job
 
-You are dispatching a new job into the job workflow system. This skill produces
-a well-formed job file and writes it to `jobs/pending/`. It does **not** execute work.
+You turn an intention into a job an agent can execute and a reviewer can judge. One job, one
+file, written to `jobs/pending/`. You do not execute anything.
 
----
-
-## Execution Protocol
-
-This skill runs under the **Antigravity Protocol v2.0** (`.claude/skills/antigravity2.0/SKILL.md`).
-
-- Read files silently using built-in tools
-- This is a **Mode B (Fast Path)** task: read context → validate → write one file → confirm
-- If validation raises a concern, stop and ask one specific question — don't guess
-- No preambles on the confirm output — output job_id, type, criteria, branch name directly
+The value here is the **specification gate**. A job with vague criteria produces work nobody can
+verify, and with parallel agents nobody is watching closely enough to catch it. Be strict.
 
 ---
 
-## STEP 1 — Read context
+## STEP 1 — Context
 
-Before evaluating the request:
+Read, in order: `CLAUDE.md` (constraints, test command, `critical_paths`), the roadmap in full,
+and the architecture reference. List `jobs/pending/`, `active/`, `done/`, `failed/` and read the
+frontmatter of each to see what is queued, in flight, and already satisfied.
 
-0. Read `.ai-agents/PROJECT_CONTEXT.md` — use it as the authoritative project name and stack
-   reference. If missing, note this and proceed with context from ROADMAP.md.
+If the work belongs to an existing feature, read its feature doc for the module boundaries and
+the interface contract.
 
-1. Read `ROADMAP.md` in full
-2. List `jobs/pending/`, `jobs/active/`, `jobs/done/`, `jobs/failed/` — read frontmatter
-   from each file (job_id, type, depends_on, priority, roadmap_ref)
-3. Build a picture of:
-   - Current version and what's left in it
-   - Jobs in flight (active)
-   - Jobs completed (done) — the set of satisfied dependencies
-   - Jobs blocked or failed
-   - The natural next item(s) on the roadmap given current state
+## STEP 2 — Validate before writing
 
-4. Read `issues/open.md` if it exists. Use it to:
-   - Check whether an issue already has a job assigned (avoid duplicate jobs)
-   - Note relevant open issue IDs that this job will address (for Step 3)
+Three checks. If any fails, resolve it before producing a file — do not quietly create a job
+that is set up to fail.
 
-   Do NOT read `issues/closed.md` (resolved issues are not relevant context for new jobs).
+**(a) Roadmap alignment.** Does this map to a roadmap item? If not, and it isn't a clear bugfix
+or housekeeping, say so:
 
-This context is required for the validation step. Do not skip it.
+> "This isn't in the roadmap. If it belongs there, run `/architect` first. If it's a one-off,
+> confirm and I'll mark it as such."
 
+**(b) Criteria are testable.** *"It works" is not an acceptance criterion.* Each bullet must be
+independently verifiable by someone who wasn't in the room when the job was written. Name the
+command, the observable output, the state change. If the request is too vague to produce such
+criteria, ask a specific question rather than inventing them.
+
+Criteria are **referenced, not copied**, from the roadmap item or feature doc. Copying creates
+drift and forces a reconciliation pass later.
+
+**(c) `touches` is complete.** Every file the job may write, including tests. This is the field
+the orchestrator uses to decide what can run in parallel, so an under-declared list silently
+breaks the guarantee for every other job in the batch.
+
+Shared files — the roadmap, changelog, `decisions/`, `features/`, `jobs/` — are **never** in
+`touches`. They are written by the orchestrator after merge.
+
+If the work cannot be scoped to a declarable file set, it is too big to be one job. Say so and
+propose a split.
+
+**(d) Test spec** — for `implementation`, `refactor` and `fix` jobs. Skip for `test`, `docs`
+and `review`.
+
+Check whether the request contains enough behavioural description to produce a test spec:
+observable inputs, outputs, invariants and error cases. If it does, write a `## Test spec`
+section into the job. If it doesn't and the job is non-trivial, ask:
+
+> "What should be tested? Describe the behaviour from the outside: what inputs produce what
+> outputs, what error cases must be handled, what must always hold, and what must never happen."
+
+Write it in **behavioural terms only** — never internal function names or structure. The spec is
+written before the implementation exists, and it is later handed to an agent that must not be
+able to infer the implementation from it.
+
+**Why this matters more than it looks.** The merge gate auto-merges on a green suite. If the
+agent that writes the implementation also writes its tests, green means "the code agrees with
+itself" — the tests mirror the implementation instead of constraining it, and the gate is
+measuring nothing. The spec exists so an adversarial test job can be generated from it *after*
+the implementation merges, written by an agent that did not write the code.
+
+**Soft gate.** If the user declines, create the job and note:
+
+> "No test spec. Adversarial test generation will be skipped for this job, so its green suite
+> only shows the implementation agrees with its own tests."
+
+**Waiver** for trivial or cosmetic work with no observable behaviour change — note it in Notes:
+`Test spec waived: no observable behaviour change.`
+
+**Does it need a feature doc?** If this work needs **2+ jobs whose `touches` are disjoint**,
+they can run in parallel — and then the interface between them must be pinned first. Hand off:
+
+> "This decomposes into N parallel jobs. Run `/architect` to pin the module boundaries and the
+> interface contract first, then I'll queue them against it."
+
+If the jobs would collide on the same file anyway, they are serial, a feature doc buys nothing,
+and the jobs reference the roadmap directly. Don't create ceremony for work that has no
+parallelism to coordinate.
+
+## STEP 3 — Write
+
+### Job id
+
+- Part of a feature → `F<NN>-J<NN>`, scoped to the feature.
+- Otherwise → the next free zero-padded integer across all four folders.
+
+Prefer feature-scoped ids. A single global counter is a race as soon as two agents create jobs
+at once.
+
+### Frontmatter
+
+```yaml
 ---
-
-## STEP 2 — Validate the request
-
-Evaluate the request against three criteria. If any concern is found, address it
-before producing the job file. Do not silently create a job set up to fail.
-
-### (a) DEPENDENCY ORDER
-
-Does this job depend on a job that is still pending or active?
-
-If yes, flag it explicitly:
-> "Job X cannot start until job [N] is done. Job [N] is currently in pending/."
-
-Offer to either:
-- Create the job with the dependency noted (correct — the orchestrator enforces it at run time)
-- Reorder if there is a genuine reason to proceed without the dependency
-
-### (b) ROADMAP ALIGNMENT
-
-Does this job correspond to a roadmap item?
-
-If the request doesn't map to any roadmap item **and** isn't a clear bugfix or
-housekeeping task, flag it:
-> "This work doesn't appear in the roadmap. If it should be there, update the roadmap
-> first via `/architect`. If it's a one-off, say so and I'll mark it accordingly."
-
-**Version order advisory**: After confirming roadmap alignment, check whether lower-version
-work is still in flight:
-- Extract the new job's version from its intended `roadmap_ref` (first space-delimited token)
-- Check whether any jobs at a lower version are still in `pending/` or `active/`
-- If yes, warn (advisory only — do not block creation):
-  > "This job is V1.2, but job 004 (V1.1 — chunk-sweep) is still pending. The job will
-  > be created, but run-jobs will not pick it up until all V1.1 jobs complete."
-
-Creation proceeds regardless. The hard gate is enforced at run time by run-jobs.
-
-### (c) SANITY CHECK
-
-Is the request well-defined enough to act on?
-
-A job with vague acceptance criteria produces unverifiable work. If the request is unclear:
-- Ask targeted clarifying questions before producing the job file
-- Propose concrete acceptance criteria drawn from the roadmap spec if one exists
-
-"It works" is not an acceptance criterion. Each criterion must be independently
-testable by someone who wasn't in the room when the job was written.
-
-### (d) TEST SPEC (soft gate)
-
-Applies to job types: `implementation`, `schema-change`, `refactor`.
-Skip for: `test`, `docs-update`, `review`.
-
-Check whether the user's request contains enough behavioral description to produce
-a test spec — observable inputs, outputs, invariants, and error cases.
-
-**If a spec can be derived** (from the request or the matching ROADMAP.md item):
-- Extract it and include a `## Test spec` section in the job file (STEP 3)
-- Write it in behavioral terms only: what goes in, what comes out, what must always hold
-- Do NOT describe internal functions or implementation structure
-
-**If no spec can be derived** and the job is non-trivial:
-- Ask before writing the job file:
-  > "What should be tested? Describe the expected behavior from the outside: what inputs
-  > produce what outputs, what error cases must be handled, what invariants must always hold."
-- Once answered, include the spec in the job file
-
-**Waiver** — if the job is trivial or cosmetic (config rename, text change, no observable
-behavior change): proceed without a test spec. Note the waiver in the Notes section:
-  > "Test spec waived: no observable behavior change."
-
-This is a **soft gate** — if the user declines to provide a spec, create the job and note:
-  > "No test spec provided. Auto-test generation will be skipped when this job completes."
-
----
-
-## STEP 3 — Write the job file
-
-### Assign the job_id
-
-Scan all four folders for existing job files. Find the highest existing `job_id`.
-Increment by 1. Zero-pad to 3 digits (001, 002, etc.).
-
-### Fill all frontmatter fields
-
-```markdown
----
-job_id: <next available, zero-padded>
-type: <implementation | schema-change | docs-update | test | refactor | review>
-depends_on: [<job_ids from validation step>]   # empty list [] if none
-priority: <high | normal | low>
-created: <today's date YYYY-MM-DD>
-roadmap_ref: "<version — item title>"          # or "" if no roadmap item
+job_id: <id>
+type: implementation | refactor | test | docs | fix | review
+depends_on: []                 # job_ids that must be in done/ first
+priority: high | normal | low
+touches:                       # REQUIRED — every file this job may write
+  - <path>
+review: auto | human
+roadmap_ref: "<section — item>"
+feature_ref: <F-id>            # omit when there is no feature doc
+created: YYYY-MM-DD
 ---
 ```
 
-**Type selection guide:**
-- `implementation` — new feature or behaviour
-- `schema-change` — any migration required
-- `docs-update` — Markdown files only, no production code
-- `test` — test additions/modifications with no production code changes
-- `refactor` — code change with no behaviour change
-- `review` — code review of completed work (dispatches code-reviewer skill)
+`review: human` is required when any `touches` entry appears in `CLAUDE.md`'s `critical_paths`,
+when the job touches a project invariant, or when it changes a configuration schema. `auto` is
+for test-only and docs work. When in doubt, `human`.
 
-### Task section
+### Body
 
-Clear, specific, references files by path. Specific enough to act on without further
-clarification. Should include what needs to change, which files are involved, and any
-hard constraints the project has documented in REFERENCE.md or WORKFLOW.md.
+**Task** — specific, references files by path, actionable without further clarification. Quote
+the exact current code where a defect is being fixed.
 
-### Acceptance criteria
+**Acceptance criteria** — the testable bullets from STEP 2(b).
 
-Testable, not vague. Each bullet must be independently verifiable.
+**Test spec** — from STEP 2(d), for `implementation`, `refactor` and `fix` jobs. Four parts:
+invariants, inputs to test, errors to catch, and what must not happen.
 
-Bad: "The feature works correctly."
-Good: "Running `make backfill-nulls` re-queues all tracks with at least one NULL
-column; `GET /api/jobs` shows new pending jobs for each re-queued track."
+**Notes** — the decision records that apply, the invariants in play, files to read first, known
+risks, and why any `depends_on` exists. If a dependency is sequencing rather than logical
+(overlapping `touches`), say so explicitly so the order is deliberate rather than incidental.
 
-### Test spec section
-
-For `implementation`, `schema-change`, `refactor` jobs:
-
-If a test spec was collected in STEP 2(d), include it:
-```markdown
-## Test spec
-- **Invariants:** [...]
-- **Inputs to test:** [...]
-- **Errors to catch:** [...]
-- **Must NOT happen:** [...]
-```
-
-If a waiver was granted or the user declined: omit the section entirely (its absence
-signals run-jobs to skip auto-test-job creation).
-
-### Notes section
-
-Flag known risks. Quote key lines from the relevant ROADMAP.md spec section. Reference
-related jobs. Note files to read before starting.
-
-If this job addresses one or more issues from `open.md`, list them:
-
-    Addresses open issues: C1, M2
-
-This is informational only. Do NOT update `open.md` here — PM updates it when the job
-is marked done via run-jobs.
-
-### File location
-
-Write to: `jobs/pending/<job_id>-<slug>.md`
-
-Slug: lowercase, hyphens, under 40 characters, describes the work.
-
-Example: `jobs/pending/003-track-features-null-audit.md`
-
----
+Write to `jobs/pending/<job_id>-<slug>.md`. Slug: lowercase, hyphens, under 40 characters.
 
 ## STEP 4 — Confirm
 
-Output:
-- `job_id` assigned
-- `type`
-- `depends_on` list (and what each dependency is)
-- The acceptance criteria list (for verification before the job runs)
-- **Suggested branch name** — derive from job type:
+Report: job id, type, `touches`, `review` and why, `depends_on` and what each is, the acceptance
+criteria, whether a test spec is present (or waived, or declined), the suggested branch name, and
+whether this job can run in parallel with anything currently queued — naming the collision if not.
 
-  | Job type | Branch prefix |
-  |----------|---------------|
-  | `implementation` | `feature/` |
-  | `schema-change` | `feature/` |
-  | `refactor` | `refactor/` |
-  | `docs-update` | `docs/` |
-  | `test` | `chore/` |
-  | `review` | N/A — no branch needed |
-
-  Rules: lowercase, hyphens only (no underscores), under 50 characters total.
-  Example: `feature/user-authentication`
-
-- **Open issues addressed**: list issue IDs from open.md that this job will resolve,
-  or "none"
-- **Test spec**: "included" | "waived (cosmetic)" | "skipped (user declined — auto-test will not run)"
-- A plain summary of any pushback noted during validation
-
-If pushback was significant, show the full draft job file and ask for confirmation
-before writing it to disk.
+If validation raised anything substantive, show the draft and ask before writing.

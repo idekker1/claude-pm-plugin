@@ -55,6 +55,22 @@ the review-recommendation feature was dead logic that looked installed.
 - **`genericity.yml`** — the plugin's own CI. Fails on absolute paths, project vocabulary,
   references to removed v1 scaffolding, duplicate skill names, and any skill or command
   `install.sh` promises but doesn't ship. Would have failed v1 at seven locations.
+- **Adversarial test generation** — carried forward from `ab32e36` and now actually distributed.
+  `create-job` gates `implementation`/`refactor`/`fix` jobs on a behavioural `## Test spec`;
+  after such a job merges, `dispatch` generates a `test` job from that spec verbatim and
+  dispatches it with a preamble instructing the agent that it did not write the code, must write
+  stubs from the spec before reading the implementation, and must record failures rather than fix
+  them.
+
+  This matters more in v2 than it did in v1: the merge gate auto-merges on a green suite, so if
+  the implementing agent also writes the tests, green means only that the code agrees with
+  itself. A red adversarial run holds its branch, reports the failures as defects found in merged
+  code, and queues a `fix` job — "never merge a red suite" still holds.
+- **`.claude/` drift check** in CI. This repo dogfoods itself, and in v1 the two copies diverged:
+  the adversarial-test feature above was written into `.claude/skills/create-job` and
+  `.claude/skills/run-jobs` but never into `skills/`, so it worked here and reached **no**
+  project that installed the plugin. Nothing noticed for four months. CI now fails if the
+  self-installed copy differs from the distributed one, or holds a skill no longer shipped.
 - **v1 → v2 migration notes** in `update-skills.sh`, plus an offer to delete the dropped skills.
 
 ### Changed

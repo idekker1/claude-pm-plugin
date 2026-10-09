@@ -56,6 +56,34 @@ Shared files — the roadmap, changelog, `decisions/`, `features/`, `jobs/` — 
 If the work cannot be scoped to a declarable file set, it is too big to be one job. Say so and
 propose a split.
 
+**(d) Test spec** — for `implementation`, `refactor` and `fix` jobs. Skip for `test`, `docs`
+and `review`.
+
+Check whether the request contains enough behavioural description to produce a test spec:
+observable inputs, outputs, invariants and error cases. If it does, write a `## Test spec`
+section into the job. If it doesn't and the job is non-trivial, ask:
+
+> "What should be tested? Describe the behaviour from the outside: what inputs produce what
+> outputs, what error cases must be handled, what must always hold, and what must never happen."
+
+Write it in **behavioural terms only** — never internal function names or structure. The spec is
+written before the implementation exists, and it is later handed to an agent that must not be
+able to infer the implementation from it.
+
+**Why this matters more than it looks.** The merge gate auto-merges on a green suite. If the
+agent that writes the implementation also writes its tests, green means "the code agrees with
+itself" — the tests mirror the implementation instead of constraining it, and the gate is
+measuring nothing. The spec exists so an adversarial test job can be generated from it *after*
+the implementation merges, written by an agent that did not write the code.
+
+**Soft gate.** If the user declines, create the job and note:
+
+> "No test spec. Adversarial test generation will be skipped for this job, so its green suite
+> only shows the implementation agrees with its own tests."
+
+**Waiver** for trivial or cosmetic work with no observable behaviour change — note it in Notes:
+`Test spec waived: no observable behaviour change.`
+
 **Does it need a feature doc?** If this work needs **2+ jobs whose `touches` are disjoint**,
 they can run in parallel — and then the interface between them must be pinned first. Hand off:
 
@@ -104,6 +132,9 @@ the exact current code where a defect is being fixed.
 
 **Acceptance criteria** — the testable bullets from STEP 2(b).
 
+**Test spec** — from STEP 2(d), for `implementation`, `refactor` and `fix` jobs. Four parts:
+invariants, inputs to test, errors to catch, and what must not happen.
+
 **Notes** — the decision records that apply, the invariants in play, files to read first, known
 risks, and why any `depends_on` exists. If a dependency is sequencing rather than logical
 (overlapping `touches`), say so explicitly so the order is deliberate rather than incidental.
@@ -113,7 +144,7 @@ Write to `jobs/pending/<job_id>-<slug>.md`. Slug: lowercase, hyphens, under 40 c
 ## STEP 4 — Confirm
 
 Report: job id, type, `touches`, `review` and why, `depends_on` and what each is, the acceptance
-criteria, the suggested branch name, and whether this job can run in parallel with anything
-currently queued — naming the collision if not.
+criteria, whether a test spec is present (or waived, or declined), the suggested branch name, and
+whether this job can run in parallel with anything currently queued — naming the collision if not.
 
 If validation raised anything substantive, show the draft and ask before writing.

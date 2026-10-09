@@ -69,6 +69,45 @@ jobs:
           fi
           exit $fail
 
+      - name: Self-install does not drift from the distributed copy
+        run: |
+          # This repo dogfoods itself: .claude/ holds a copy of skills/ and commands/ so the
+          # plugin can be used while developing it. Those copies MUST stay identical.
+          #
+          # In v1 they did not, and it cost a whole feature: the adversarial test generation in
+          # ab32e36 was written into .claude/skills/create-job and .claude/skills/run-jobs but
+          # never into skills/ — so it worked in this repo and reached no project that installed
+          # the plugin. Nothing noticed for four months.
+          fail=0
+          for f in skills/*/SKILL.md; do
+            skill=$(basename "$(dirname "$f")")
+            mirror=".claude/skills/$skill/SKILL.md"
+            if [ ! -f "$mirror" ]; then
+              echo "::error::$mirror missing — run update-skills.sh"
+              fail=1
+            elif ! diff -q "$f" "$mirror" > /dev/null; then
+              echo "::error::$mirror differs from $f. Edit skills/ and re-run update-skills.sh."
+              fail=1
+            fi
+          done
+          for f in commands/*.md; do
+            mirror=".claude/$f"
+            if [ ! -f "$mirror" ]; then
+              echo "::error::$mirror missing — run update-skills.sh"
+              fail=1
+            elif ! diff -q "$f" "$mirror" > /dev/null; then
+              echo "::error::$mirror differs from $f. Edit commands/ and re-run update-skills.sh."
+              fail=1
+            fi
+          done
+          # And nothing may linger in the mirror that the distribution no longer ships.
+          for f in .claude/skills/*/SKILL.md; do
+            [ -e "$f" ] || continue
+            skill=$(basename "$(dirname "$f")")
+            [ -f "skills/$skill/SKILL.md" ] || { echo "::error::.claude/skills/$skill is not shipped in skills/"; fail=1; }
+          done
+          exit $fail
+
       - name: Declared skills and commands exist
         run: |
           fail=0

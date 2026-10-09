@@ -94,6 +94,20 @@ Move the job file `pending/` → `active/`. Then for each job in the batch:
 - **The agent pushes a branch and stops.** Agents never merge, never write shared files, and
   never touch a file outside their `touches`.
 
+### Adversarial test jobs
+
+A `test` job whose frontmatter carries `generated_from: <job_id>` was generated from another
+job's test spec. Prepend this to its dispatch context, **before** the job file:
+
+> You are a test engineer who did not write the code under test. Your job is to break it, not to
+> verify it. Work from the test spec in the job file. **Write the test stubs from the spec
+> before reading any implementation source.** When you run them, a failure is information — do
+> not fix the implementation. Record every failure in your result summary with enough detail to
+> act on, and finish the job.
+
+Do not pass this preamble to a hand-written `test` job. It only applies where the point is
+independence from the implementation.
+
 ## STEP 5 — Merge, one at a time
 
 A depth-1 queue. For each finished branch in completion order:
@@ -123,6 +137,24 @@ summary: <what was done, and any deviation from the spec>
 On abandonment, `active/` → `failed/` with a `## Failure` section recording the reason and
 `next_step: retry | abandon | rewrite`, and **do not** tick anything in the roadmap.
 
+### When an adversarial test job goes red
+
+An adversarial test job is *supposed* to be able to fail — that is the whole point of generating
+it. But "never merge a red suite" still holds, because a red default branch breaks the gate for
+every other job.
+
+So when a `generated_from` test job's tests fail against the already-merged implementation:
+
+1. **Hold the branch. Do not merge it, and do not fix the implementation from this job.**
+2. Report each failure as a finding — this is a real defect found in merged code, which is
+   exactly what the mechanism is for. Say so plainly rather than burying it.
+3. Queue a `fix` job that depends on this one, with the failures as its task and the same test
+   spec. `review: human`.
+4. Once the fix merges and the tests pass, merge the test branch.
+
+A green adversarial run merges normally and is worth stating in the digest: it is the only case
+where a green suite means something stronger than "the implementation agrees with its own tests."
+
 ## STEP 6 — Close out
 
 Shared-file updates happen **here, by you, serially, after the merges** — never by a worker:
@@ -134,6 +166,44 @@ Shared-file updates happen **here, by you, serially, after the merges** — neve
   `/architect` write the record. Do not invent one yourself.
 - Remove each merged branch's worktree.
 
+### Generate the adversarial test job
+
+For each merged `implementation`, `refactor` or `fix` job, check it for a `## Test spec` section.
+
+**If present**, write a new job to `jobs/pending/`:
+
+```yaml
+---
+job_id: <next free, or <F-id>-J<NN>>
+type: test
+depends_on: []                   # the implementation is already merged
+generated_from: <completed job_id>
+priority: high
+touches:
+  - <test files only — never the implementation>
+review: auto
+roadmap_ref: "<same as the source job>"
+created: YYYY-MM-DD
+---
+```
+
+Task: verify the merged implementation against the test spec, copied **verbatim** from the source
+job. State in the task that the agent did not write this implementation and must find where it
+fails rather than confirm where it passes, covering every spec item, at least one error path per
+behavioural contract, and at least one boundary case per input category.
+
+Acceptance: a test exists for every spec item; at least one exercises an error or boundary
+condition; the per-test run output is recorded, not just a summary; any failure is described well
+enough to act on.
+
+Set `touches` to the test files only. That keeps it disjoint from implementation work, so it can
+run in parallel with the next batch.
+
+**If absent**, advisory only — do not invent a spec:
+
+> "No test spec in job <id>, so no adversarial test job was generated. Its green suite only shows
+> that the implementation agrees with its own tests."
+
 ## STEP 7 — Digest
 
 One report for the batch, not one per job:
@@ -142,6 +212,8 @@ One report for the batch, not one per job:
 - held for review, and what the user needs to decide
 - bounced, with the cause and whether it is back in `pending/`
 - failed, with `next_step`
+- adversarial test jobs generated, and the result of any that ran — naming defects found in
+  merged code, which is the finding most worth surfacing
 - shared docs updated
 - what is eligible next, or what is blocking everything
 

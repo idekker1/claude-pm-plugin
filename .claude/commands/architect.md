@@ -1,16 +1,13 @@
-Design a feature for this codebase using the architect skill.
+Design a feature using the architect skill.
 
-$ARGUMENTS: brief description of the feature to design
+$ARGUMENTS — the feature or design question.
 
-The architect will:
-1. Read ROADMAP.md and .ai-agents/REFERENCE.md (silently)
-2. Check jobs/pending/ and jobs/active/ for related in-flight work
-3. Ask clarifying questions about the underlying goal and success criteria
-4. Present 2-3 distinct design options with tradeoffs
-5. State a recommendation with rationale
-6. Lock the design in a Design Summary (requires your confirmation)
-7. Update ROADMAP.md with the new feature item
-8. Hand off to /create-job for implementation queuing
+1. Reads `CLAUDE.md`, `ROADMAP.md`, `ARCHITECTURE.md` and the relevant records in `decisions/`.
+2. Checks the idea against the project's scope, invariants and already-settled decisions — and
+   says so plainly when it conflicts with one, rather than designing around it.
+3. Presents options with real tradeoffs and makes a recommendation.
+4. Writes the decision record to `decisions/`, citing the records it rests on.
+5. Writes a feature doc with module boundaries and an interface contract **only** when the work
+   decomposes into 2+ jobs whose `touches` are disjoint.
 
-Invoke when a decision affects 2+ system layers, requires a technology tradeoff,
-or would result in a new ROADMAP.md item. Skip for single-component tweaks.
+Designs only — implements nothing, queues nothing. Hands off to `/create-job`.

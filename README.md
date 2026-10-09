@@ -45,6 +45,19 @@ jobs whose `touches` overlap.** Conflicts become impossible rather than resolvab
 The cost is real and worth naming: same-file work serializes, so features must be decomposed
 along file boundaries. That is a forcing function on module design, not a tax.
 
+### Who writes the tests matters
+
+The gate auto-merges on a green suite — so if the agent that writes the implementation also
+writes its tests, green means only that *the code agrees with itself*. The tests mirror the
+implementation instead of constraining it.
+
+So `implementation`, `refactor` and `fix` jobs carry a behavioural `## Test spec`, written before
+the implementation exists. After the job merges, `dispatch` generates a `test` job from that spec
+and tells the agent it did not write the code, must write its stubs from the spec **before**
+reading the implementation, and must record failures rather than fix them. A red adversarial run
+is a defect found in merged code: the branch holds, the failures are reported, and a `fix` job is
+queued.
+
 ### Prerequisite
 
 **Parallel agents require a test suite running in CI.** Two branches can merge cleanly and still
