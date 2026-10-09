@@ -1,22 +1,31 @@
-## Summary
+## What
 
--
+<!-- One paragraph. What changed and why. Link the job file if this implements one. -->
 
-## Changes
+Job:
+Roadmap:
 
--
+## Acceptance criteria
 
-## Test plan
+<!-- From the job file. Tick what you verified. Unticked boxes block merge. -->
 
-- [ ] Tests pass locally
-- [ ] Linting clean
-- [ ] No new warnings or regressions
+- [ ]
+- [ ]
 
-## Checklist
+## Invariant check
 
-- [ ] Branch name follows `type/slug` convention
-- [ ] Commit messages follow `type: description` format
-- [ ] ROADMAP.md updated if a feature shipped
-- [ ] `.ai-agents/REFERENCE.md` updated if API or schema changed
+<!-- From CLAUDE.md. Tick what applies; say explicitly if this touches a critical path. -->
 
-🤖 Reviewed with [Claude PM Plugin](https://github.com/idekker1/claude-pm-plugin)
+- [ ] No invariant in `CLAUDE.md` is violated
+- [ ] Touches a `critical_paths` entry — requires human review: yes / no
+
+## Verification
+
+```
+<!-- The lint and test commands from CLAUDE.md, and their output. -->
+```
+
+## Notes
+
+<!-- Deviations from the job spec, decisions that should become a record in `decisions/`,
+     and what the reviewer should look at first. -->

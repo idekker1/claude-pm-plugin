@@ -1,0 +1,29 @@
+name: tests
+
+# The mechanical merge gate. A job may only auto-merge when this is green.
+# Jobs whose `touches` hit a `critical_paths` entry in CLAUDE.md still require human review.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: {{LINT_COMMAND}}
+
+      - name: Tests
+        run: {{TEST_COMMAND}}

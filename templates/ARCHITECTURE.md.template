@@ -1,0 +1,60 @@
+# Architecture
+
+Technical reference for {{PROJECT_NAME}}. Describes what the code does **today**, not what it
+should do — intent and sequencing live in [ROADMAP.md](ROADMAP.md), design rationale in
+[decisions/](decisions/).
+
+**Verify before trusting:** every claim here is checkable against the code. If they disagree,
+the code is right and this file is a bug.
+
+---
+
+## Shape
+
+<!-- The layout, and the one-line reason each part exists. Include the runtime dependencies,
+     because "what must be installed for this to start" is the first thing an agent needs. -->
+
+```
+```
+
+<!-- Note here anything that is deliberately NOT committed, and why. -->
+
+## Entry points
+
+<!-- How execution begins: CLI, HTTP routes, scheduled jobs, event triggers. A table of
+     trigger → path → what runs. An agent that doesn't know the entry points will add code
+     nothing calls. -->
+
+| Trigger | Path | What runs |
+|---|---|---|
+
+## Core flows
+
+<!-- For each significant operation: the ordered steps, and which ones are load-bearing.
+     Say explicitly where order matters — that is what stops a refactor reordering a guard. -->
+
+## Data and state
+
+<!-- Schemas, file formats, persisted state, and where each lives. Pin formats precisely;
+     this is what a later migration gets checked against. -->
+
+## Known gaps
+
+<!-- Defects and traps in the current code, recorded here because they are easy to mistake
+     for intent when reading. This section earns the file: it is the difference between a
+     reference and a brochure. Link the job or roadmap item that addresses each. -->
+
+## Invariants
+
+<!-- Point at CLAUDE.md rather than restating. Call out the two or three that most often
+     surprise someone reading this file. -->
+
+## Testing
+
+```
+{{TEST_COMMAND}}
+{{LINT_COMMAND}}
+```
+
+<!-- What the suite covers, what it deliberately doesn't, and anything a test must never
+     touch (production data, a real external service, the live filesystem). -->

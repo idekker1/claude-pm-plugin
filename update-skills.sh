@@ -102,11 +102,17 @@ copy_file() {
 ALL_SKILLS=(
   "setup"
   "pm"
+  "architect"
+  "create-job"
+  "dispatch"
+  "pr"
+)
+
+# Removed in v2 — deleted from a project on update, since a leftover copy still loads and
+# still competes for triggering. See CHANGELOG.md for why each went.
+REMOVED_SKILLS=(
   "code-reviewer"
   "code-guardian"
-  "architect"
-  "pr"
-  "create-job"
   "run-jobs"
   "antigravity"
   "antigravity2.0"
@@ -182,6 +188,13 @@ fi
 # ── Commands ──────────────────────────────────────────────────────────────────
 
 ALL_COMMANDS=(
+  "architect.md"
+  "create-job.md"
+  "dispatch.md"
+  "pr.md"
+)
+
+REMOVED_COMMANDS=(
   "setup.md"
   "pm.md"
   "pm-update-roadmap.md"
@@ -190,9 +203,6 @@ ALL_COMMANDS=(
   "review.md"
   "audit.md"
   "pre-commit.md"
-  "pr.md"
-  "architect.md"
-  "create-job.md"
   "run-jobs.md"
 )
 
@@ -250,6 +260,80 @@ if ! $SKILLS_ONLY; then
 
     echo ""
   fi
+fi
+
+# ── Remove skills and commands dropped in v2 ─────────────────────────────────
+#
+# A leftover copy is not harmless: it still loads, still competes for triggering, and in the
+# case of the protocol skills actively contradicts v2's behaviour. Only runs on a full update
+# (no specific skills named), and always asks unless --yes.
+
+if [ ${#SELECTED_SKILLS[@]} -eq 0 ]; then
+  REMOVED_FOUND=()
+  for skill in "${REMOVED_SKILLS[@]}"; do
+    [ -f "$CLAUDE_DIR/skills/$skill/SKILL.md" ] && REMOVED_FOUND+=("skills/$skill/")
+  done
+  for cmd in "${REMOVED_COMMANDS[@]}"; do
+    [ -f "$CLAUDE_DIR/commands/$cmd" ] && REMOVED_FOUND+=("commands/$cmd")
+  done
+
+  if [ ${#REMOVED_FOUND[@]} -gt 0 ]; then
+    echo -e "${BOLD}Removed in v2 — still present in this project:${RESET}"
+    for item in "${REMOVED_FOUND[@]}"; do
+      echo -e "  ${YELLOW}−${RESET}  $item"
+    done
+    echo ""
+    echo "  See CHANGELOG.md for why each was dropped. Leaving them in place means two"
+    echo "  reviewers competing to trigger, and protocol skills that contradict v2."
+    echo ""
+
+    if $DRY_RUN; then
+      echo -e "  ${YELLOW}~${RESET}  dry run — not deleted"
+    else
+      do_delete=false
+      if $YES; then
+        do_delete=true
+      else
+        printf "  Delete these? [y/N] "
+        read -r reply < /dev/tty || reply="n"
+        [[ "$reply" =~ ^[Yy]$ ]] && do_delete=true
+      fi
+
+      if $do_delete; then
+        for skill in "${REMOVED_SKILLS[@]}"; do
+          rm -rf "$CLAUDE_DIR/skills/$skill"
+        done
+        for cmd in "${REMOVED_COMMANDS[@]}"; do
+          rm -f "$CLAUDE_DIR/commands/$cmd"
+        done
+        echo -e "  ${GREEN}✓${RESET}  removed"
+      else
+        echo -e "  ${YELLOW}↷${RESET}  kept — expect duplicate triggering"
+      fi
+    fi
+    echo ""
+  fi
+fi
+
+# ── v1 → v2 migration notes ───────────────────────────────────────────────────
+
+V1_LEFTOVERS=()
+[ -d "$PROJECT_ROOT/.ai-agents" ]          && V1_LEFTOVERS+=(".ai-agents/ → CLAUDE.md + ARCHITECTURE.md")
+[ -f "$PROJECT_ROOT/WORKFLOW.md" ]        && V1_LEFTOVERS+=("WORKFLOW.md → lint/test/branch rules now live in CLAUDE.md")
+[ -f "$PROJECT_ROOT/plugin-config.yaml" ] && V1_LEFTOVERS+=("plugin-config.yaml → Notion sync removed in v2")
+[ -d "$PROJECT_ROOT/issues" ]             && V1_LEFTOVERS+=("issues/ → use your tracker; roadmap items for planned work")
+[ ! -f "$PROJECT_ROOT/CLAUDE.md" ]        && V1_LEFTOVERS+=("CLAUDE.md missing → run /setup; it replaces PROJECT_CONTEXT.md")
+
+if [ -f "$PROJECT_ROOT/.gitignore" ] && grep -qE '^\s*(jobs|features|decisions)/' "$PROJECT_ROOT/.gitignore"; then
+  V1_LEFTOVERS+=(".gitignore excludes jobs/, features/ or decisions/ → remove that rule; they are versioned")
+fi
+
+if [ ${#V1_LEFTOVERS[@]} -gt 0 ]; then
+  echo -e "${BOLD}v1 → v2 migration — handle these by hand:${RESET}"
+  for note in "${V1_LEFTOVERS[@]}"; do
+    echo "  • $note"
+  done
+  echo ""
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────

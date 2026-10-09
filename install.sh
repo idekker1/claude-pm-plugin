@@ -22,15 +22,10 @@ mkdir -p "$CLAUDE_DIR/commands"
 SKILLS=(
   "setup"
   "pm"
-  "code-reviewer"
-  "code-guardian"
   "architect"
-  "pr"
   "create-job"
-  "run-jobs"
-  "antigravity"
-  "antigravity2.0"
-  "ultimate-protocol"
+  "dispatch"
+  "pr"
 )
 
 echo "Installing skills:"
@@ -57,18 +52,10 @@ echo ""
 # ── Copy commands ─────────────────────────────────────────────────────────────
 
 COMMANDS=(
-  "setup.md"
-  "pm.md"
-  "pm-update-roadmap.md"
-  "pm-sync.md"
-  "pm-review-trigger.md"
-  "review.md"
-  "audit.md"
-  "pre-commit.md"
-  "pr.md"
   "architect.md"
   "create-job.md"
-  "run-jobs.md"
+  "dispatch.md"
+  "pr.md"
 )
 
 echo "Installing commands:"
@@ -96,7 +83,7 @@ echo ""
 echo "Setting up project structure:"
 
 # Folders
-for dir in "jobs/pending" "jobs/active" "jobs/done" "jobs/failed" "issues" ".ai-agents" ".github"; do
+for dir in "jobs/pending" "jobs/active" "jobs/done" "jobs/failed" "decisions" "features" ".github"; do
   full_dir="$PROJECT_ROOT/$dir"
   if [ ! -d "$full_dir" ]; then
     mkdir -p "$full_dir"
@@ -110,25 +97,40 @@ for dir in "jobs/pending" "jobs/active" "jobs/done" "jobs/failed" "issues" ".ai-
   fi
 done
 
-# Template files (never overwrite)
-declare -A TEMPLATE_MAP=(
-  ["$PLUGIN_DIR/templates/jobs/README.md"]="$PROJECT_ROOT/jobs/README.md"
-  ["$PLUGIN_DIR/templates/jobs/job-template.md"]="$PROJECT_ROOT/jobs/job-template.md"
-  ["$PLUGIN_DIR/templates/issues/open.md"]="$PROJECT_ROOT/issues/open.md"
-  ["$PLUGIN_DIR/templates/issues/closed.md"]="$PROJECT_ROOT/issues/closed.md"
-  ["$PLUGIN_DIR/templates/.github/pull_request_template.md"]="$PROJECT_ROOT/.github/pull_request_template.md"
-  ["$PLUGIN_DIR/templates/ROADMAP.md.template"]="$PROJECT_ROOT/ROADMAP.md"
-  ["$PLUGIN_DIR/templates/REFERENCE.md.template"]="$PROJECT_ROOT/.ai-agents/REFERENCE.md"
-  ["$PLUGIN_DIR/templates/WORKFLOW.md.template"]="$PROJECT_ROOT/WORKFLOW.md"
-  ["$PLUGIN_DIR/templates/plugin-config.yaml.template"]="$PROJECT_ROOT/plugin-config.yaml"
-)
+# Template files (never overwrite).
+#
+# "<template path>|<destination, relative to project root>".
+#
+# Deliberately NOT an associative array: macOS still ships bash 3.2, which has no `declare -A`.
+# v1 used one here, so on every macOS install this loop silently copied nothing and left a set
+# of empty directories behind — which looked like the plugin had never been set up.
+TEMPLATES="
+CLAUDE.md.template|CLAUDE.md
+ROADMAP.md.template|ROADMAP.md
+ARCHITECTURE.md.template|ARCHITECTURE.md
+decisions/README.md|decisions/README.md
+decisions/decision-template.md|decisions/decision-template.md
+features/feature-template.md|features/feature-template.md
+jobs/README.md|jobs/README.md
+jobs/job-template.md|jobs/job-template.md
+.github/pull_request_template.md|.github/pull_request_template.md
+"
 
-for src in "${!TEMPLATE_MAP[@]}"; do
-  dest="${TEMPLATE_MAP[$src]}"
-  rel_dest="${dest#$PROJECT_ROOT/}"
+echo "$TEMPLATES" | while IFS='|' read -r tmpl rel_dest; do
+  [ -z "$tmpl" ] && continue
+
+  src="$PLUGIN_DIR/templates/$tmpl"
+  dest="$PROJECT_ROOT/$rel_dest"
+
+  if [ ! -f "$src" ]; then
+    echo "  ⚠  $rel_dest — template missing at templates/$tmpl"
+    continue
+  fi
+
   if [ -f "$dest" ]; then
     echo "  ↷  $rel_dest — already exists"
   else
+    mkdir -p "$(dirname "$dest")"
     cp "$src" "$dest"
     echo "  ✓  $rel_dest"
   fi
@@ -136,12 +138,14 @@ done
 
 echo ""
 
-# ── Remind about .gitignore ───────────────────────────────────────────────────
+# ── Check .gitignore ──────────────────────────────────────────────────────────
 
+# Jobs, features and decisions are versioned artifacts: coordination state for parallel
+# agents, and the record of what was done. Both are worthless if they live on one machine.
 if [ -f "$PROJECT_ROOT/.gitignore" ]; then
-  if ! grep -q "plugin-config.yaml" "$PROJECT_ROOT/.gitignore"; then
-    echo "⚠  Add plugin-config.yaml to .gitignore before adding Notion credentials:"
-    echo "   echo 'plugin-config.yaml' >> .gitignore"
+  if grep -qE '^\s*(jobs|features|decisions)/' "$PROJECT_ROOT/.gitignore"; then
+    echo "⚠  Your .gitignore excludes jobs/, features/ or decisions/. Remove that rule —"
+    echo "   these are versioned artifacts, and the dependency resolver reads jobs/done/."
     echo ""
   fi
 fi
@@ -151,9 +155,11 @@ fi
 echo "✓ Claude PM Plugin installed."
 echo ""
 echo "Next steps:"
-echo "  1. Edit ROADMAP.md — fill in § 1 (vision) and § 2 (technology decisions)"
-echo "  2. Edit .ai-agents/REFERENCE.md — describe your architecture"
-echo "  3. Optional: add Notion credentials to plugin-config.yaml for issue sync"
-echo "  4. Run /create-job to queue your first task"
+echo "  1. Run /setup in Claude Code — it detects your stack and fills in CLAUDE.md"
+echo "     (test command, lint command, proposed critical paths) and writes a CI workflow."
+echo "  2. Edit ROADMAP.md — § 1 vision and scope, and the 'what this is not' boundary."
+echo "  3. Run /architect to record the decisions already implicit in your codebase."
+echo "  4. Run /create-job to queue your first task, then /dispatch to run it."
 echo ""
-echo "Run /setup in Claude Code to verify the structure."
+echo "Parallel dispatch needs a test suite running in CI. /setup will tell you whether"
+echo "this project has one."

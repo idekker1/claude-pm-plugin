@@ -1,0 +1,83 @@
+name: genericity
+
+# This plugin installs into any project. A skill may contain decision procedures; it may not
+# contain facts about a particular project. v1 shipped with seven references to the codebase it
+# was extracted from — including hardcoded review triggers ("ML pipeline", "database query
+# files") that could never fire in a project without a database, which made a safety feature
+# dead logic wherever it was installed.
+#
+# Intention did not keep the plugin generic. This check does.
+
+on:
+  pull_request:
+  push:
+    branches: [main, v2]
+
+jobs:
+  no-project-specifics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No absolute paths
+        run: |
+          # A path from one machine is never right on another.
+          if grep -rnE '(/Users/|/home/[a-z]|/Volumes/|C:\\\\)' skills/ commands/ templates/; then
+            echo "::error::Absolute path found. Use a project-relative path or a placeholder."
+            exit 1
+          fi
+          echo "OK"
+
+      - name: No project-specific vocabulary
+        run: |
+          # Domain nouns and stack specifics that belong in a project's own CLAUDE.md,
+          # ARCHITECTURE.md or decision records — never in a skill or a template.
+          #
+          # Extend this list whenever a leak gets through; that is the point of the file.
+          PATTERNS='ML pipeline|database query file|schema migration|backfill|genre|\.als|\.logicx|rsync|backup_runner|test_runner\.py|check_status|Expansion|LaunchAgent|Streamlit|Notion|SOFI|SLAI|MLAI'
+          if grep -rniE "$PATTERNS" skills/ commands/ templates/; then
+            echo "::error::Project-specific term found. Skills hold decision procedures; projects hold facts."
+            exit 1
+          fi
+          echo "OK"
+
+      - name: No references to removed v1 scaffolding
+        run: |
+          # These were v1's convention paths. PROJECT_CONTEXT.md in particular was v1's attempt
+          # at project-awareness: a file each skill had to remember to read, which failed
+          # silently wherever it was never created. CLAUDE.md replaces it because the harness
+          # loads it unconditionally.
+          if grep -rnE '\.ai-agents|PROJECT_CONTEXT|WORKFLOW\.md|plugin-config|issues/open|issues/closed|antigravity|ultimate-protocol|code-reviewer|code-guardian|run-jobs' skills/ commands/ templates/; then
+            echo "::error::Reference to removed v1 scaffolding."
+            exit 1
+          fi
+          echo "OK"
+
+      - name: Every skill has a name and description
+        run: |
+          fail=0
+          for f in skills/*/SKILL.md; do
+            head -20 "$f" | grep -q '^name:'        || { echo "::error file=$f::missing name:"; fail=1; }
+            head -20 "$f" | grep -q '^description:' || { echo "::error file=$f::missing description:"; fail=1; }
+          done
+          # Duplicate names make skill resolution ambiguous — v1 shipped two skills both
+          # declaring `antigravity-protocol`.
+          dupes=$(grep -h '^name:' skills/*/SKILL.md | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::Duplicate skill name(s): $dupes"
+            fail=1
+          fi
+          exit $fail
+
+      - name: Declared skills and commands exist
+        run: |
+          fail=0
+          # Anything install.sh promises to copy must be present, or an install silently
+          # produces a project missing a skill its commands reference.
+          for s in $(sed -n '/^SKILLS=(/,/^)/p' install.sh | grep -oE '"[a-z0-9.-]+"' | tr -d '"'); do
+            [ -f "skills/$s/SKILL.md" ] || { echo "::error::install.sh lists skill '$s' but skills/$s/SKILL.md is missing"; fail=1; }
+          done
+          for c in $(sed -n '/^COMMANDS=(/,/^)/p' install.sh | grep -oE '"[a-z0-9.-]+\.md"' | tr -d '"'); do
+            [ -f "commands/$c" ] || { echo "::error::install.sh lists command '$c' but commands/$c is missing"; fail=1; }
+          done
+          exit $fail
