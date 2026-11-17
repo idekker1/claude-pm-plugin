@@ -1,16 +1,17 @@
 ---
 name: pr
 description: >
-  Ship the current branch: lint → confirm commit → push → open PR. Run after a
-  code-reviewer or code-guardian pass says the branch is ready. Do NOT run on main directly.
+  Ship the current branch: lint → test → confirm commit → push → open PR. Reads the lint and
+  test commands from CLAUDE.md; a red suite stops the ship. Invoke when the user wants to ship,
+  push, or open a PR for the current branch. Do NOT run on the default branch directly.
 ---
 
 # PR — Ship the Current Branch
 
-Ship the current branch: lint → confirm commit → push → open PR.
+Ship the current branch: lint → test → confirm commit → push → open PR.
 
-Run this after a code-reviewer or code-guardian pass says the branch is ready.
-Do NOT run this on `main` directly.
+Run this once the work is complete and reviewed. Do NOT run it on the default branch —
+commits there must go through a branch and a PR.
 
 $ARGUMENTS may be:
 - Empty: use current branch, auto-generate commit message and PR description
@@ -53,18 +54,22 @@ If any are present: stop, tell the user which files to remove, and provide the e
 
 ---
 
-**Step 3 — Lint**
+**Step 3 — Lint and test**
 
-Run the project's lint command (check `WORKFLOW.md` for the correct command).
-Common examples: `make lint`, `ruff check .`, `eslint src/`, `npm run lint`.
+Read `CLAUDE.md` for the project's lint and test commands. If it names neither, say so and ask
+rather than guessing a command for the stack.
 
-If it exits non-zero:
+Run lint. If it exits non-zero:
 1. Report which files/lines failed
 2. Run the auto-fix command if one exists
-3. Re-run lint — if still failing, report what needs manual fixing and stop
+3. Re-run — if still failing, report what needs manual fixing and stop
 4. If auto-fix changed files, note them — they will be included in the commit
 
-If lint passes: continue.
+Then run the test suite. **A red suite stops the ship.** Report the failures and stop; do not
+open a PR that is known broken.
+
+If `CLAUDE.md` declares `critical_paths`, check the diff against them and say plainly whether
+this branch touches one — the reviewer needs to know that up front.
 
 ---
 
@@ -84,7 +89,7 @@ before proceeding. Do not commit without explicit confirmation.
 Example stop point:
 ```
 Proposed commit message:
-  feat: add genre-coherence filter to set builder
+  feat: <imperative summary of the change>
 
 Confirm this message? (or provide your own)
 ```
@@ -98,10 +103,11 @@ Wait for user response before moving to Step 5.
 Once the user confirms the message, run:
 ```
 git add -p   ← stage interactively, or list specific files if the diff is clean
-git commit -m "<confirmed message>
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+git commit -m "<confirmed message>"
 ```
+
+Append whatever co-authorship line the running environment specifies. Do not hardcode a model
+name here — it goes stale, and the harness supplies the correct attribution.
 
 If the commit hook fails: report the failure, do NOT use `--no-verify`. Fix the
 underlying issue and retry.
@@ -171,11 +177,11 @@ Output a final status block:
 
 ---
 
-## Execution Protocol
+## Notes
 
-This skill runs under the **Antigravity Protocol v2.0** (`.claude/skills/antigravity2.0/SKILL.md`).
-
-- Output the Opening Declaration (`Mode B: Fast Path`) before any tool call
-- All git checks and lint runs happen via tool calls — no narration
-- No preambles between steps — output the result, then move to the next step
-- The commit message confirmation (Step 4) is the only required halt; do not add others
+- The commit message confirmation (Step 4) is the only required halt. Don't add others.
+- If the branch implements a job, link the job file in the PR body and tick its acceptance
+  criteria. Unticked criteria mean the branch isn't ready.
+- Never `--no-verify`, never force-push, never open a PR with a red suite.
+- When invoked by the orchestrator rather than by a person, skip the Step 4 halt only if the
+  orchestrator supplied the message; everything else is unchanged.

@@ -1,13 +1,11 @@
-Queue a new unit of work into jobs/pending/ using the create-job skill.
+Queue a unit of work using the create-job skill.
 
-$ARGUMENTS: description of the work to be done
+$ARGUMENTS — a description of the work to queue.
 
-The skill will:
-1. Read ROADMAP.md and all job folders to understand current state
-2. Validate dependency order, roadmap alignment, and acceptance criteria specificity
-3. Assign the next available job_id (zero-padded, e.g. 027)
-4. Write a well-formed job file to jobs/pending/
-5. Confirm: job_id, type, dependencies, acceptance criteria, suggested branch name
+Validates roadmap alignment, that the acceptance criteria are independently testable, and that
+the `touches` list is complete enough to schedule safely. Writes one file to `jobs/pending/`.
 
-Does NOT execute work — only produces the job file.
-Run /run-jobs to pick it up.
+Hands off to `/architect` first if the work needs a feature doc — that is, if it decomposes into
+two or more jobs whose `touches` are disjoint and therefore need a pinned interface contract.
+
+Does not execute work.

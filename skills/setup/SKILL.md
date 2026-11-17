@@ -1,435 +1,110 @@
 ---
 name: setup
 description: >
-  Bootstrap the Claude PM Plugin structure in a new project. Creates all required
-  folders (jobs/, issues/), copies template files (ROADMAP.md, REFERENCE.md, WORKFLOW.md,
-  plugin-config.yaml, PR template), and installs skills and commands into .claude/.
-  Detects project context (name, language, stack) and writes .ai-agents/PROJECT_CONTEXT.md
-  so all other skills can reference the current project without hardcoded content.
-  Safe to run multiple times — never overwrites existing files. Invoke when setting
-  up the plugin in a new project, or to check which plugin files are missing.
+  Bootstrap this plugin's structure in a project: CLAUDE.md, ROADMAP.md, ARCHITECTURE.md,
+  decisions/, features/, jobs/ and a CI workflow matched to the detected stack. Detects the
+  project's language, test command and lint command rather than assuming them. Safe to run
+  repeatedly — never overwrites an existing file. Invoke when setting up the plugin in a new
+  project, or to check what is missing.
 ---
 
-# Setup — Claude PM Plugin Bootstrap
+# Setup
 
-You are bootstrapping the Claude PM Plugin in this project. Your job is to detect
-what's missing and create it — without touching anything that already exists.
+You bootstrap the plugin in a project. Detect what's missing, create it, and **never overwrite
+anything that already exists.** Running twice must produce the same result as running once.
 
-**This skill is idempotent.** Running it twice must produce the same result as
-running it once. Never overwrite existing files.
-
----
-
-## Execution Protocol
-
-This skill runs under the **Ultimate Protocol** (`.claude/skills/ultimate-protocol/SKILL.md`).
-
-This is a resource-intensive task: it reads multiple manifest files, infers project context,
-creates up to 12 files, and verifies skill installation.
-
-- Zero conversational English during execution — all file reads and existence checks happen silently
-- No output between steps — every action is a tool call, not a narration
-- On completion, output the JSON status block:
-  ```json
-  {
-    "status": "success | failed_needs_review",
-    "created": ["list of files/folders created"],
-    "skipped": ["list of files/folders already present"],
-    "project_context": {"name": "...", "language": "...", "description": "..."},
-    "install_check": "ok | missing — run install.sh"
-  }
-  ```
-- If a file write fails, set `"status": "failed_needs_review"` and list the failure in `"errors": [...]`
+Report what you did in plain English: created, skipped, detected, and what the user must fill in
+themselves.
 
 ---
 
-## STEP 1 — Detect existing structure (silent)
+## STEP 1 — Detect the project
 
-Check for the existence of each of the following. Build two lists: **present** and
-**missing**.
+You are writing files that will be read as truth by every later agent, so detect rather than
+assume. Determine:
 
-**Folders:**
-- `jobs/pending/`
-- `jobs/active/`
-- `jobs/done/`
-- `jobs/failed/`
-- `issues/`
-- `.ai-agents/`
-- `.github/`
+- **Name** — from package metadata, then the git remote, then the directory name.
+- **Language and stack** — from the manifest files present (`pyproject.toml`, `setup.py`,
+  `requirements.txt`, `package.json`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, …).
+- **Test command** — from the manifest's scripts, a `Makefile` target, a CI config, or the test
+  framework actually imported by files under `test/` or `tests/`. If an existing test file
+  exists, the command that runs *it* is the answer.
+- **Lint command** — same sources. If there is none, say so; don't invent one.
+- **Entry points** — executables, `main`, server start, CLI.
+- **Critical paths** — the files where a mistake is expensive: anything on a data-writing path,
+  auth, migrations, deployment config. Propose a list; make clear it is a proposal.
 
-**Files:**
-- `ROADMAP.md`
-- `.ai-agents/REFERENCE.md`
-- `.ai-agents/PROJECT_CONTEXT.md`
-- `WORKFLOW.md`
-- `plugin-config.yaml`
-- `jobs/README.md`
-- `issues/open.md`
-- `issues/closed.md`
-- `.github/pull_request_template.md`
+If detection is ambiguous, **ask one specific question** rather than writing a confident wrong
+answer into `CLAUDE.md`.
 
-Do NOT read file contents — only check existence (use `ls` or equivalent). Do not
-output anything during this step.
+## STEP 2 — Report the plan, then create
 
----
+List what is missing and what you will create. Then create only the missing items.
 
-## STEP 2 — Create missing structure
+### Directories
 
-For each item in the **missing** list, create it using the templates below. For items
-in the **present** list, skip entirely — output nothing about them yet.
+`decisions/`, `features/`, `jobs/pending/`, `jobs/active/`, `jobs/done/`, `jobs/failed/`
 
-**Before creating ROADMAP.md or REFERENCE.md:** run STEP 2.5 detection logic first (even
-if PROJECT_CONTEXT.md is not in the missing list) so you have `project_name` available to
-substitute into the templates. Replace every occurrence of `[Project Name]` in the templates
-below with the detected project name before writing.
+Add `.gitkeep` to the four empty job lifecycle folders. **Do not** add the job folders to
+`.gitignore` — jobs, features and decisions are versioned artifacts. They are coordination state
+for parallel agents and the record of what was done, and both are worthless if they live on one
+machine. If the project's `.gitignore` already excludes them, say so and recommend removing that
+rule.
 
-### Folders to create (with .gitkeep so git tracks empty dirs)
+### Files, from `templates/`
 
-```
-jobs/pending/.gitkeep
-jobs/active/.gitkeep
-jobs/done/.gitkeep
-jobs/failed/.gitkeep
-issues/
-.ai-agents/
-.github/
-```
+| Template | Destination |
+|---|---|
+| `CLAUDE.md.template` | `CLAUDE.md` |
+| `ROADMAP.md.template` | `ROADMAP.md` |
+| `ARCHITECTURE.md.template` | `ARCHITECTURE.md` |
+| `decisions/README.md` | `decisions/README.md` |
+| `decisions/decision-template.md` | `decisions/decision-template.md` |
+| `features/feature-template.md` | `features/feature-template.md` |
+| `jobs/README.md` | `jobs/README.md` |
+| `jobs/job-template.md` | `jobs/job-template.md` |
+| `.github/pull_request_template.md` | `.github/pull_request_template.md` |
 
-### `ROADMAP.md`
+Fill the detected values into `CLAUDE.md` as you copy it — project name, test command, lint
+command, proposed `critical_paths`. Leave the rest as clearly-marked placeholders. A placeholder
+is honest; a guess is not.
 
-```markdown
-# [Project Name] — Roadmap
+`CLAUDE.md` is the one file the harness loads automatically in every session, which is why the
+project's constraints live there rather than in a file a skill has to remember to read.
 
-**Last updated:** YYYY-MM-DD
-**Current version: V0.1**
+### CI workflow
 
-> This document is the strategic reference for all AI agents working on this codebase.
-> Read this alongside `.ai-agents/REFERENCE.md` before making any changes.
+Copy the workflow matching the detected stack from `templates/workflows/` to
+`.github/workflows/test.yml`, substituting the detected test and lint commands.
 
----
+**If no stack matches, write no workflow** and say so. Emitting a workflow for the wrong language
+is worse than emitting none — it produces a permanently red check that teaches the user to ignore
+CI.
 
-## § 1 — Vision & Scope
+## STEP 3 — The parallel-dispatch gate
 
-[Describe what this project does and what success looks like. One paragraph.]
+Check whether a usable test suite exists: a test command *and* test files that actually run.
 
----
+**If there is no trustworthy suite, say so prominently and state that parallel dispatch is not
+available yet:**
 
-## § 2 — Technology Decisions (Final)
+> "No test suite detected. `/dispatch` will run one job at a time. Parallel agents need a suite
+> that runs in CI — two branches can merge cleanly and still break the default branch (a rename
+> in one, a new caller in the other), and only a full test run catches that. Add a suite before
+> running agents in parallel."
 
-These decisions are made. Don't revisit them without strong reason.
+This is a real prerequisite, not a recommendation. Do not scaffold parallel workflow
+documentation into a project that cannot safely use it.
 
-| Concern | Choice | Rationale |
-|---------|--------|-----------|
-| [e.g. Database] | [e.g. PostgreSQL] | [why] |
+## STEP 4 — Report
 
----
+- **Created** — each path.
+- **Skipped** — each path that already existed.
+- **Detected** — name, stack, test command, lint command, entry points.
+- **Proposed `critical_paths`** — and ask the user to confirm or correct them, since this list
+  drives which work requires human review.
+- **Parallel dispatch** — available, or not available and why.
+- **Next steps** — fill in the roadmap's vision and scope sections, record the decisions already
+  implicit in the codebase with `/architect`, then `/create-job`.
 
-## § 3 — V0.1 — Initial Release
-
-- [ ] [First feature or milestone]
-
----
-
-## § 10 — Open Questions
-
-[Design decisions not yet made. Remove this section once all questions are resolved.]
-```
-
-### `.ai-agents/REFERENCE.md`
-
-```markdown
-# [Project Name] — AI Agent Reference
-
-> **Purpose:** Definitive reference for any AI agent working on this codebase.
-> Read this before making any changes. For strategic direction, read `ROADMAP.md`.
-
----
-
-## § 1 — Project Overview
-
-[One paragraph: what this project is, what it does, what the main components are.]
-
-**Current version: V0.1**
-
----
-
-## § 2 — Architecture
-
-[Describe how the system is structured: services, databases, key components.]
-
----
-
-## § 3 — Directory Layout
-
-[Key directories and what they contain.]
-
----
-
-## § 4 — Database Schema
-
-[Tables, columns, relationships. Update when schema changes.]
-
----
-
-## § 5 — Configuration
-
-[Environment variables, config files, key settings.]
-
----
-
-## § 6 — MCP / Integration Tools (if applicable)
-
-[Any MCP server tools or external integrations.]
-
----
-
-## § 7 — API Endpoints (if applicable)
-
-[REST API routes, methods, request/response shapes.]
-
----
-
-## § 8 — Known Limitations & Extension Points
-
-[Things that are deliberately out of scope or known constraints.]
-```
-
-### `WORKFLOW.md`
-
-```markdown
-# Developer Workflow
-
-## Branch Naming
-
-| Work type | Prefix | Example |
-|-----------|--------|---------|
-| New feature | `feature/` | `feature/user-authentication` |
-| Bug fix | `fix/` | `fix/null-pointer-login` |
-| Documentation | `docs/` | `docs/update-api-reference` |
-| Refactor | `refactor/` | `refactor/extract-query-layer` |
-| CI / tooling | `chore/` | `chore/add-ruff-pre-commit` |
-
-Rules: lowercase only, hyphens as separators, under 50 characters total.
-
-## Commit Messages
-
-Format: `<type>: <description in imperative mood>`
-
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`
-
-Rules: under 72 chars, imperative mood ("add X" not "added X"), no period at end.
-
-## Day-to-Day Workflow
-
-```
-git checkout -b feature/my-feature   # branch from main
-# ... develop ...
-/pre-commit                          # guardian pass before commit
-git add -p && git commit -m "feat: ..."
-/review src/path/to/changed/files    # deep review before PR
-/pr                                  # lint → commit → push → open PR
-# merge on GitHub
-git checkout main && git pull
-/run-jobs "PR merged #N"             # sync roadmap + docs
-```
-
-## Claude Code Skills
-
-| Command | What it does |
-|---------|-------------|
-| `/setup` | Bootstrap plugin structure in this project |
-| `/pm` | Project status: branches, job queue, roadmap |
-| `/architect [feature]` | Design a feature before building it |
-| `/create-job [task]` | Queue a unit of work |
-| `/run-jobs` | Execute next unblocked job |
-| `/review [path]` | Deep code review |
-| `/pre-commit` | Quick consistency check before committing |
-| `/pr` | Ship: lint → commit → push → open PR |
-| `/audit` | Full codebase audit, generate issue reports |
-| `/pm-sync` | Sync issue reports to Notion (if configured) |
-| `/pm-update-roadmap` | Mark shipped items [x] in roadmap |
-
-## Job Workflow
-
-```
-/architect feature        # design and roadmap entry
-/create-job 'task'        # queue implementation work
-/run-jobs                 # pick up and execute job
-/pr                       # ship the branch
-/run-jobs "PR merged #N"  # sync docs after merge
-```
-```
-
-### `plugin-config.yaml`
-
-```yaml
-# Claude PM Plugin — project configuration
-# See: https://github.com/[your-repo]/claude-pm-plugin
-
-# ── Notion Integration ─────────────────────────────────────────────────────────
-# Set enabled: true and provide IDs to sync audit reports to Notion.
-# WARNING: Do not commit credentials — add plugin-config.yaml to .gitignore
-notion:
-  enabled: false
-  workspace_id: ""          # Notion workspace ID
-  bugs_database_id: ""      # Database for Critical/Major/Minor issues
-  tasks_database_id: ""     # Database for Architectural roadmap items
-```
-
-### `jobs/README.md`
-
-Create from the job system documentation template (see templates/jobs/README.md in the plugin repo).
-
-### `issues/open.md`
-
-```markdown
-# Open Issues
-
-Last updated: YYYY-MM-DD
-
-| ID | Severity | Title | File | Job | Status |
-|----|----------|-------|------|-----|--------|
-```
-
-### `issues/closed.md`
-
-```markdown
-# Closed Issues
-
-Last updated: YYYY-MM-DD
-
-| ID | Severity | Title | Closed | Job | How Resolved |
-|----|----------|-------|--------|-----|--------------|
-```
-
-### `.github/pull_request_template.md`
-
-```markdown
-## Summary
-
--
-
-## Changes
-
--
-
-## Test plan
-
-- [ ] Tests pass locally
-- [ ] Linting clean
-- [ ] No new warnings or regressions
-
-## Checklist
-
-- [ ] Branch name follows `type/slug` convention
-- [ ] Commit messages follow `type: description` format
-- [ ] ROADMAP.md updated if a feature shipped
-- [ ] `.ai-agents/REFERENCE.md` updated if API or schema changed
-
-🤖 Reviewed with [Claude PM Plugin](https://github.com/[your-repo]/claude-pm-plugin)
-```
-
----
-
-## STEP 2.5 — Detect project context and write PROJECT_CONTEXT.md
-
-**Skip this step entirely if `.ai-agents/PROJECT_CONTEXT.md` is already present.**
-
-Probe the repo root silently for the following files and extract context from whichever
-exist. Priority order: first match wins for `project_name` and `description`.
-
-### Detection priority
-
-| File | Extract |
-|------|---------|
-| `package.json` | `name`, `description`; language = `Node.js / TypeScript` or `Node.js / JavaScript` |
-| `pyproject.toml` | `[project] name`, `[project] description`; language = `Python` |
-| `setup.py` | first `name=` argument; language = `Python` |
-| `Cargo.toml` | `[package] name`, `[package] description`; language = `Rust` |
-| `go.mod` | `module` line; language = `Go` |
-| `README.md` | First H1 as `project_name`, first non-blank paragraph after H1 as `description` |
-| git remote | `git remote get-url origin` → extract repo name from URL as fallback |
-
-If no source yields a name, use `"unknown"`.
-
-### Template for `.ai-agents/PROJECT_CONTEXT.md`
-
-```markdown
-# Project Context
-
-> Auto-generated by /setup. Edit freely — /setup will not overwrite this file.
-> All skills read this file for project identity. Keep it current.
-
-## Identity
-
-**Name:** <project_name>
-**Language / Stack:** <language>
-**Description:** <description>
-**Context generated:** <YYYY-MM-DD>
-
-## Source of detection
-
-<which file(s) the above was derived from>
-
-## Additional context
-
-<!-- Add team conventions, key contacts, deployment notes, or anything skills should
-     know about this project that is not in ROADMAP.md or REFERENCE.md -->
-```
-
-Write this file to `.ai-agents/PROJECT_CONTEXT.md`. This file is the single source
-of project identity for all agent skills. No other skill writes to it.
-
----
-
-## STEP 3 — Install skills and commands
-
-The plugin's skill and command files should already be present in `.claude/skills/`
-and `.claude/commands/` (the install script handles this). If running in a context
-where they are not yet installed, report this and provide the install command:
-
-```
-bash .claude/plugins/pm/install.sh
-```
-
-Do not copy files yourself in this step — that is the install script's job.
-
----
-
-## STEP 4 — Output status JSON
-
-Following the Ultimate Protocol, output ONLY the JSON status block. No prose.
-
-```json
-{
-  "status": "success",
-  "created": ["list every file and folder just created, or empty array"],
-  "skipped": ["list every file and folder already present and left untouched, or empty array"],
-  "project_context": {
-    "name": "<detected project name>",
-    "language": "<detected language / stack>",
-    "description": "<detected description>"
-  },
-  "install_check": "ok | missing — run: bash .claude/plugins/pm/install.sh",
-  "next_steps": [
-    "Edit ROADMAP.md — fill in § 1 (project vision) and § 2 (technology decisions)",
-    "Edit .ai-agents/REFERENCE.md — describe your architecture and directory layout",
-    "Edit .ai-agents/PROJECT_CONTEXT.md — add team conventions and deployment notes",
-    "If using Notion sync: add IDs to plugin-config.yaml and add it to .gitignore",
-    "Run /create-job to queue your first task"
-  ]
-}
-```
-
----
-
-## What NOT to do
-
-- Do not overwrite any existing file — skip it and add it to the "skipped" list
-- Do not ask for confirmation before creating missing structure — just create it
-- Do not read or validate existing file contents — only check existence
-- Do not create files outside the expected locations
-- Do not run the job workflow or any other skill — this is setup only
-- Do not output prose during execution — follow the Ultimate Protocol (zero English, JSON only)
-- Do not hardcode any project name or stack in the skill itself — all project content comes
-  from detection and lives in PROJECT_CONTEXT.md
+Never claim you created something you skipped.

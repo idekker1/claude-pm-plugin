@@ -1,0 +1,64 @@
+# {{PROJECT_NAME}}
+
+<!-- One paragraph: what this project is and who it is for. Specific enough that an agent
+     reading only this file knows what it is working on. -->
+
+- **What and in what order:** [ROADMAP.md](ROADMAP.md)
+- **How the code works:** [ARCHITECTURE.md](ARCHITECTURE.md)
+- **Why it works that way:** [decisions/](decisions/)
+- **Queued work:** [jobs/](jobs/)
+
+---
+
+## The hard constraint
+
+<!-- The one thing that must not break. Every project has one; name it explicitly, because
+     an agent cannot infer it and will optimise for something else.
+     Delete this section only if the project genuinely has no such constraint. -->
+
+## Invariants
+
+<!-- Rules that make a change wrong regardless of how useful it is. Keep the list short enough
+     that it is actually read — if it has twenty entries, they are conventions, not invariants.
+     Per-decision reasoning belongs in decisions/; this is for what applies to every job. -->
+
+1.
+2.
+3.
+
+## Commands
+
+```
+{{TEST_COMMAND}}       # test
+{{LINT_COMMAND}}       # lint
+```
+
+<!-- These are read by /pr, /dispatch and /pm. If they are wrong, the merge gate is wrong. -->
+
+Tests must pass before any branch ships.
+
+## Critical paths
+
+Work touching these needs human review before merge, regardless of a green test suite:
+
+```yaml
+critical_paths:
+{{CRITICAL_PATHS}}
+```
+
+<!-- The files where a mistake is expensive: data-writing paths, auth, migrations, deploy
+     config. /create-job sets `review: human` on any job whose `touches` intersects this list,
+     and /dispatch holds it. An empty list means every job needs human review. -->
+
+## Conventions
+
+<!-- The handful of rules a new agent would otherwise get wrong. Not a style guide — the
+     project-specific things: dependency policy, where state lives, what must never be
+     committed, how errors are surfaced. -->
+
+- Branches: `feature/`, `fix/`, `docs/`, `refactor/`, `chore/` — lowercase, hyphens, under 50
+  characters. Never commit to the default branch; always branch and open a PR.
+- Docs are updated in the same change as the code. A doc that contradicts the code is worse than
+  no doc, because agents read it as truth.
+- **Ask rather than guess.** If a request is ambiguous, stop and ask one specific question.
+  Don't write a throwaway script to infer the intent, and don't pick a reading and run with it.
