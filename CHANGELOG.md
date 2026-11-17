@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `karpathy-guidelines` — Coding behaviour rules (think before coding, simplicity first,
+  surgical changes, goal-driven execution), adapted from
+  [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) (MIT)
+
 ## v1.0.0 — 2026-04-19
 
 Initial release. Extracted and generalized from the MLAI/SLAI project.

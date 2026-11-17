@@ -22,6 +22,7 @@ workflow across any codebase. Extracted and generalized from the SLAI project.
 | `antigravity` | automatic | High-efficiency coding protocol (v1) |
 | `antigravity2.0` | automatic | High-efficiency coding protocol (v2.0) |
 | `ultimate-protocol` | "ultimate mode" | Zero-English execution protocol |
+| `karpathy-guidelines` | automatic (coding tasks) | Coding behaviour rules: think first, simplicity, surgical changes, verifiable goals ([source](https://github.com/multica-ai/andrej-karpathy-skills)) |
 
 ### Project Structure Created
 

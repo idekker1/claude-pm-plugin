@@ -31,6 +31,7 @@ SKILLS=(
   "antigravity"
   "antigravity2.0"
   "ultimate-protocol"
+  "karpathy-guidelines"
 )
 
 echo "Installing skills:"

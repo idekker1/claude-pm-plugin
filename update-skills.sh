@@ -111,6 +111,7 @@ ALL_SKILLS=(
   "antigravity"
   "antigravity2.0"
   "ultimate-protocol"
+  "karpathy-guidelines"
 )
 
 if ! $COMMANDS_ONLY; then
